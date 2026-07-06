@@ -1,0 +1,61 @@
+{
+  "summary": "First-finish smoke test on BusinessFlow. Backend auth, CRUD (products/customers/invoices), seed, search, dashboard, business profile, forgot-password, logout all work. Frontend landing/login/register-style flows, dashboard, sidebar navigation, seed-demo button, global search (Cmd+K), and logout all functional. One HIGH-priority backend bug found in POST /api/orders which returns HTTP 500 due to ObjectId serialization, which will also break the frontend Orders creation dialog.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "POST /api/auth/login (admin) 200, sets httpOnly cookies, returns access_token in body",
+    "GET /api/auth/me 200 with cookies",
+    "POST /api/auth/register 200 creates fresh owner user",
+    "POST /api/auth/logout 200",
+    "POST /api/auth/forgot-password 200 returns reset_token",
+    "POST /api/dev/seed 200 populates demo data",
+    "GET /api/products (list) and POST /api/products (create) 200",
+    "GET /api/customers 200, owner-scoped",
+    "POST /api/invoices 200 generates INV-00009, PUT /api/invoices/{id}/status?status=paid 200",
+    "GET /api/dashboard/overview 200 returns kpis, sales_series(14d), category_breakdown, recent_orders, low_stock",
+    "GET /api/search?q=... 200 returns owner-scoped results across products/customers/orders/invoices/employees",
+    "GET /api/business/profile 200 round-trip",
+    "Frontend / landing loads with hero + CTAs (Start free, See it in action)",
+    "Frontend /login logs admin in and redirects to /app",
+    "Frontend /app dashboard shell renders KPI labels (Orders/Customers/Products) and sidebar",
+    "Sidebar navigation to Products and Orders works; products-page testid present",
+    "seed-demo-btn clickable in sidebar",
+    "global-search-trigger opens palette, global-search-input accepts input",
+    "logout-btn clears session and redirects to /login"
+  ],
+  "failed": [
+    {
+      "area": "backend / Orders",
+      "issue": "POST /api/orders returns HTTP 500 (ValueError: 'ObjectId' object is not iterable). Root cause: create_order() calls `doc = order.model_dump(); await db.orders.insert_one(doc); ... return doc`. Motor's insert_one mutates the dict in-place by injecting `_id: ObjectId(...)`, which FastAPI's jsonable_encoder cannot serialize. Also blocks stock decrement verification and frontend order creation dialog.",
+      "evidence": "Request: POST /api/orders body={customer_id, customer_name, items:[{product_id,name,quantity,price}]}. Response 500. Backend log: TypeError: 'ObjectId' object is not iterable at fastapi/encoders.py:322 during serialize_response for create_order.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "backend / Invoices response consistency (minor)",
+      "issue": "create_invoice returns via inv.model_dump() (safe) — no bug — but note that unlike order the pattern differs. Flagging for consistency; not a blocker.",
+      "evidence": "server.py:594-595 uses inv.model_dump() after insert; order uses the mutated doc.",
+      "priority": "LOW"
+    },
+    {
+      "area": "frontend / dialogs a11y",
+      "issue": "Console errors: 'DialogContent requires a DialogTitle for accessibility' on Orders page dialogs. Non-blocking but should be wrapped in VisuallyHidden or given a DialogTitle.",
+      "evidence": "Console error captured on /app/orders when interacting.",
+      "priority": "LOW"
+    },
+    {
+      "area": "frontend / charts",
+      "issue": "Recharts warning 'width(-1) and height(-1) of chart should be greater than 0' repeated on dashboard render — likely container sizing before layout settles. Non-blocking.",
+      "evidence": "Console warnings on /app dashboard load.",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Fix POST /api/orders serialization: in server.py create_order (line ~549-559) return `order.model_dump()` instead of the post-insert `doc`, OR pop `_id` before returning, OR use a copy. Recommended: `return order.model_dump()`.",
+    "Verify order creation now works end-to-end via UI (New order dialog) and confirm stock decrement + customer aggregates update + ORD-NNNNN order_number.",
+    "Optional: add DialogTitle (or VisuallyHidden wrapper) to Orders/Invoices/CRUD dialogs to remove Radix a11y console errors.",
+    "Optional: give recharts ResponsiveContainer explicit min-height to remove width/height warnings."
+  ],
+  "success_rate": {"backend": "92%", "frontend": "95%"},
+  "retest_needed": true,
+  "full_testing_deferred": true,
+  "test_credentials": "Loaded from /app/memory/test_credentials.md — admin@businessflow.io / Admin@12345 verified working. Fresh registration also verified."
+}
