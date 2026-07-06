@@ -1,0 +1,22 @@
+{
+  "summary": "Regression re-test after ObjectId serialization fix in POST /api/orders. All three regression items PASS. Backend order create + status update return HTTP 200 with clean schema (no _id/ObjectId leakage). Frontend New order dialog end-to-end (login -> customer select -> add item -> product select -> submit) creates the order without 500 and it appears in the orders table with 'Order created' toast.",
+  "tested_scope": ["backend", "frontend", "integration"],
+  "passed": [
+    "POST /api/orders (2 items, tax_rate=10) -> HTTP 200; order_number=ORD-00022, subtotal=175.00, tax=17.50, total=192.50; response contains id/owner_id/items/status/payment_status only (no _id/ObjectId leakage)",
+    "PUT /api/orders/{id}/status?status=completed -> HTTP 200; status transitions to 'completed', payload cleanly serialized",
+    "Frontend /app/orders: New order dialog opens, native <select> customer picker chooses Maria Silva, Add item -> product select picks Leather Wallet, Create order dismisses dialog and 'Order created' toast appears",
+    "Table refresh shows ORD-00023 at top (orders count 22 -> 23), no console errors during creation"
+  ],
+  "failed": [],
+  "carried_over_low_priority": [
+    "Radix DialogContent a11y warning (no DialogTitle) from iteration_1 — not re-observed on Orders dialog this run but still applicable elsewhere",
+    "Recharts width/height(-1) warning on dashboard — cosmetic"
+  ],
+  "action_items": [
+    "None blocking. Optional: address low-priority a11y and recharts warnings from iteration_1."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "test_credentials": "Loaded from /app/memory/test_credentials.md — admin@businessflow.io / Admin@12345 verified working."
+}

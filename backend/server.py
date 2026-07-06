@@ -548,6 +548,7 @@ async def create_order(body: OrderCreate, current=Depends(get_current_user)):
     )
     doc = order.model_dump()
     await db.orders.insert_one(doc)
+    doc.pop("_id", None)
     # decrement stock
     for item in body.items:
         await db.products.update_one({"id": item.product_id, "owner_id": current["id"]},
