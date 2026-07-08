@@ -22,7 +22,7 @@ export default function Products() {
       columns={[
         { key: "name", label: "Name", render: (r) => <div><div className="font-medium">{r.name}</div><div className="text-xs text-neutral-500">{r.category}</div></div> },
         { key: "sku", label: "SKU", mono: true },
-        { key: "price", label: "Price", mono: true, align: "right", render: (r) => `$${(r.price||0).toFixed(2)}` },
+        { key: "price", label: "Price", mono: true, align: "right", render: (r) => `₹${(r.price||0).toFixed(2)}` },
         { key: "stock", label: "Stock", mono: true, align: "right",
           render: (r) => <span className={r.stock <= (r.low_stock_threshold||10) ? "text-amber-700 font-semibold" : ""}>{r.stock}</span> },
       ]}

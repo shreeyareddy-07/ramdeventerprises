@@ -84,9 +84,9 @@ export default function Invoices() {
               <tr key={inv.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                 <td className="px-4 py-3 mono text-xs">{inv.invoice_number}</td>
                 <td>{inv.customer_name}</td>
-                <td className="text-right mono">${(inv.amount || 0).toFixed(2)}</td>
-                <td className="text-right mono text-neutral-500">${(inv.tax || 0).toFixed(2)}</td>
-                <td className="text-right mono font-semibold">${(inv.total || 0).toFixed(2)}</td>
+                <td className="text-right mono">₹${(inv.amount || 0).toFixed(2)}</td>
+                <td className="text-right mono text-neutral-500">₹${(inv.tax || 0).toFixed(2)}</td>
+                <td className="text-right mono font-semibold">₹${(inv.total || 0).toFixed(2)}</td>
                 <td>
                   <select value={inv.status} onChange={(e) => setStatus(inv.id, e.target.value)}
                           data-testid={`invoices-status-${inv.id}`}

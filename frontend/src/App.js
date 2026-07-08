@@ -17,6 +17,7 @@ import Suppliers from "@/pages/Suppliers";
 import Expenses from "@/pages/Expenses";
 import Reports from "@/pages/Reports";
 import BusinessProfile from "@/pages/BusinessProfile";
+import Payments from "@/pages/Payments";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -58,6 +59,7 @@ export default function App() {
               <Route path="employees" element={<Employees />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="expenses" element={<Expenses />} />
+              <Route path="payments" element={<Payments />} />
               <Route path="reports" element={<Reports />} />
               <Route path="business" element={<BusinessProfile />} />
             </Route>

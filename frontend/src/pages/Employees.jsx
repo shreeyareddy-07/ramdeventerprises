@@ -21,7 +21,7 @@ export default function Employees() {
       columns={[
         { key: "name", label: "Name", render: (r) => <div><div className="font-medium">{r.name}</div><div className="text-xs text-neutral-500">{r.role} · {r.department}</div></div> },
         { key: "email", label: "Email", mono: true },
-        { key: "salary", label: "Salary", align: "right", mono: true, render: (r) => `$${(r.salary||0).toFixed(2)}` },
+        { key: "salary", label: "Salary", align: "right", mono: true, render: (r) => `₹${(r.salary||0).toFixed(2)}` },
         { key: "status", label: "Status", render: (r) => <span className={`text-xs uppercase tracking-wider ${r.status==="active"?"text-green-700":"text-neutral-500"}`}>{r.status}</span> },
       ]}
     />

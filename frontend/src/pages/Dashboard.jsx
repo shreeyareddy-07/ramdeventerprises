@@ -98,7 +98,7 @@ export default function Dashboard() {
 
   const k = data.kpis || {};
   const fmt = (n) => (n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
-  const money = (n) => "$" + (n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const money = (n) => "₹" + (n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   const spark = (data.sales_series || []).map((s) => ({ v: s.revenue }));
   const orderSpark = (data.sales_series || []).map((s) => ({ v: s.orders }));
@@ -140,13 +140,13 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        <KPI index={0} icon={DollarSign} label="Revenue" value={<AnimatedNumber value={k.revenue} prefix="$" decimals={2} />}
+        <KPI index={0} icon={DollarSign} label="Revenue" value={<AnimatedNumber value={k.revenue} prefix="₹" decimals={2} />}
              sub="From completed orders" tone="brand" spark={spark} delta={12} />
         <KPI index={1} icon={ShoppingCart} label="Orders" value={<AnimatedNumber value={k.orders} />}
              sub="All-time" spark={orderSpark} delta={8} />
         <KPI index={2} icon={Users} label="Customers" value={<AnimatedNumber value={k.customers} />} sub="Active accounts" delta={4} />
         <KPI index={3} icon={Package} label="Products" value={<AnimatedNumber value={k.products} />} sub="In inventory" />
-        <KPI index={4} icon={TrendingUp} label="Profit" value={<AnimatedNumber value={k.profit} prefix="$" decimals={2} />}
+        <KPI index={4} icon={TrendingUp} label="Profit" value={<AnimatedNumber value={k.profit} prefix="₹" decimals={2} />}
              sub={`Expenses ${money(k.expenses)}`} tone="brand" />
         <KPI index={5} icon={Users} label="Employees" value={<AnimatedNumber value={k.employees} />} sub="On payroll" />
         <motion.div
@@ -192,7 +192,7 @@ export default function Dashboard() {
                 </defs>
                 <CartesianGrid stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#737373" }} tickFormatter={(d) => d.slice(5)} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#737373" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                <YAxis tick={{ fontSize: 10, fill: "#737373" }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
                 <Tooltip contentStyle={{ fontSize: 12, borderRadius: 2, border: "1px solid #111", background: "#fff" }} />
                 <Area type="monotone" dataKey="revenue" stroke="#002FA7" strokeWidth={2} fill="url(#chartFill)" />
               </AreaChart>
@@ -248,7 +248,7 @@ export default function Dashboard() {
                 <tr key={o.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
                   <td className="py-2.5 mono text-xs">{o.order_number}</td>
                   <td>{o.customer_name || "—"}</td>
-                  <td className="text-right mono">${(o.total || 0).toFixed(2)}</td>
+                  <td className="text-right mono">₹${(o.total || 0).toFixed(2)}</td>
                   <td className="text-right">
                     <span className={`text-[10px] mono uppercase tracking-wider px-2 py-0.5 border ${
                       o.status === "completed" ? "text-[#059669] border-[#059669]/30 bg-[#059669]/5" :

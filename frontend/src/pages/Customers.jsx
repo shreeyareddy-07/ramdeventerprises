@@ -21,7 +21,7 @@ export default function Customers() {
         { key: "email", label: "Email", mono: true },
         { key: "phone", label: "Phone", mono: true },
         { key: "total_orders", label: "Orders", align: "right", mono: true },
-        { key: "total_spent", label: "Spent", align: "right", mono: true, render: (r) => `$${(r.total_spent||0).toFixed(2)}` },
+        { key: "total_spent", label: "Spent", align: "right", mono: true, render: (r) => `₹${(r.total_spent||0).toFixed(2)}` },
       ]}
     />
   );

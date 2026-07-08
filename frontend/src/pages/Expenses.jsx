@@ -55,7 +55,7 @@ export default function Expenses() {
 
       <div className="bg-white border border-neutral-200 p-5 rounded-sm mb-6">
         <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">Total tracked</div>
-        <div className="font-display text-4xl font-black tabular tracking-tight mt-2">${total.toFixed(2)}</div>
+        <div className="font-display text-4xl font-black tabular tracking-tight mt-2">₹${total.toFixed(2)}</div>
       </div>
 
       <div className="bg-white border border-neutral-200 rounded-sm overflow-hidden">
@@ -76,7 +76,7 @@ export default function Expenses() {
                 <td className="px-4 py-3 mono text-xs">{r.date}</td>
                 <td>{r.category}</td>
                 <td className="text-neutral-600">{r.description}</td>
-                <td className="text-right mono">${(r.amount || 0).toFixed(2)}</td>
+                <td className="text-right mono">₹${(r.amount || 0).toFixed(2)}</td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => del(r.id)} data-testid={`expenses-delete-${r.id}`}
                           className="p-1.5 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-sm">

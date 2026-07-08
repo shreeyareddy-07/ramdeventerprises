@@ -42,9 +42,9 @@ export default function Reports() {
 
       <div className="grid md:grid-cols-4 gap-4 md:gap-6 mb-6">
         {[
-          { label: "Revenue", value: `$${(kpi.revenue||0).toFixed(2)}` },
-          { label: "Profit", value: `$${(kpi.profit||0).toFixed(2)}` },
-          { label: "Expenses", value: `$${(kpi.expenses||0).toFixed(2)}` },
+          { label: "Revenue", value: `₹${(kpi.revenue||0).toFixed(2)}` },
+          { label: "Profit", value: `₹${(kpi.profit||0).toFixed(2)}` },
+          { label: "Expenses", value: `₹${(kpi.expenses||0).toFixed(2)}` },
           { label: "Orders", value: kpi.orders || 0 },
         ].map((c, i) => (
           <div key={i} className="bg-white border border-neutral-200 p-5 rounded-sm">

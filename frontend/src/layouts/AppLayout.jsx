@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Package, Users, ShoppingCart, FileText, UserCog,
-  Truck, Receipt, BarChart3, Building2, Search, LogOut, Sparkles, ChevronRight
+  Truck, Receipt, BarChart3, Building2, Search, LogOut, Sparkles, ChevronRight, IndianRupee
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -20,6 +20,7 @@ const NAV = [
   { to: "/app/employees", icon: UserCog, label: "Employees", group: "operations" },
   { to: "/app/suppliers", icon: Truck, label: "Suppliers", group: "operations" },
   { to: "/app/expenses", icon: Receipt, label: "Expenses", group: "operations" },
+  { to: "/app/payments", icon: IndianRupee, label: "Payments", group: "operations" },
   { to: "/app/reports", icon: BarChart3, label: "Reports", group: "insights" },
   { to: "/app/business", icon: Building2, label: "Business", group: "insights" },
 ];

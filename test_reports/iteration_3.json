@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 3 smoke tests passed for Business Profile save fix, Payments module (settings + record + UPI QR link), and INR (₹) currency across UI. Backend endpoints for business/profile, payments/settings, payments (create/list), payments/upi-link all return 200 with correct payloads. Frontend flows verified end-to-end with admin login.",
+  "tested_scope": ["backend", "frontend", "integration", "auth"],
+  "passed": [
+    "Admin login (admin@businessflow.io/Admin@12345) works and lands on /app",
+    "PUT /api/business/profile returns clean JSON (no _id, no owner_id leakage) — bug fix confirmed",
+    "Frontend /app/business Save button shows 'Business profile saved' toast",
+    "GET /api/payments/settings returns default INR settings for existing user",
+    "PUT /api/payments/settings stores only last-4 of account number (sent 123456789 -> stored 6789)",
+    "POST /api/payments creates payment with auto-ref PAY-00001, PAY-00002 sequentially",
+    "GET /api/payments lists created payments",
+    "GET /api/payments/upi-link returns upi://pay?pa=...&am=500.00&cu=INR&tn=Test",
+    "Frontend /app/payments loads, sidebar 'Payments' link visible with rupee icon",
+    "Payments tabs (Received / Payment details) both functional",
+    "Record payment dialog creates payment and toast 'Payment recorded' shown",
+    "Generate UPI link opens dialog with QR image + copyable upi:// link",
+    "Dashboard KPIs and payments list display ₹ (Revenue ₹8,963.18, Profit ₹2,223.18, Expenses ₹6,740)"
+  ],
+  "failed": [
+    {
+      "area": "backend/business-profile",
+      "issue": "PUT /api/business/profile silently drops extended India fields (legal_name, gstin, pan, address_line1, city, state, pincode, country). Response only echoes base BusinessProfile fields (business_name, industry, email, phone, address, tax_id, currency, logo_url).",
+      "evidence": "curl PUT with full India body returned only base fields; extended fields not persisted or echoed.",
+      "priority": "MEDIUM"
+    },
+    {
+      "area": "backend/business-profile",
+      "issue": "Business profile currency defaults to 'USD' even though app is India-localized to INR. Consider defaulting currency to 'INR'.",
+      "evidence": "PUT /api/business/profile response: \"currency\":\"USD\"",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Optional: extend BusinessProfile model to persist legal_name, gstin, pan, address_line1, city, state, pincode, country (currently accepted but dropped).",
+    "Optional: change default currency in BusinessProfile from USD to INR to match INR-focused seed data and UI."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}

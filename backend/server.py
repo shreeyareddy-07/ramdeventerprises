@@ -723,8 +723,115 @@ async def update_business_profile(body: BusinessProfile, current=Depends(get_cur
     data = body.model_dump()
     data["owner_id"] = current["id"]
     await db.business_profiles.update_one({"owner_id": current["id"]}, {"$set": data}, upsert=True)
-    data.pop("owner_id")
+    data.pop("owner_id", None)
+    data.pop("_id", None)
     return data
+
+
+# ---------------------------------------------------------------------------
+# Payments (India-focused: UPI + Bank + card-last4)
+# ---------------------------------------------------------------------------
+
+class PaymentSettings(BaseModel):
+    account_holder: str = ""
+    upi_id: str = ""
+    bank_name: str = ""
+    account_number_last4: str = ""
+    ifsc: str = ""
+    pan: str = ""
+    gstin: str = ""
+    currency: str = "INR"
+
+
+class Payment(BaseModel):
+    id: str = Field(default_factory=new_id)
+    owner_id: str
+    reference: str
+    invoice_id: Optional[str] = None
+    invoice_number: str = ""
+    customer_name: str = ""
+    amount: float
+    method: Literal["upi", "card", "netbanking", "cash", "bank_transfer"] = "upi"
+    status: Literal["received", "pending", "refunded", "failed"] = "received"
+    note: str = ""
+    payer_upi: str = ""
+    created_at: str = Field(default_factory=now_iso)
+
+
+class PaymentCreate(BaseModel):
+    invoice_id: Optional[str] = None
+    customer_name: str = ""
+    amount: float
+    method: Literal["upi", "card", "netbanking", "cash", "bank_transfer"] = "upi"
+    status: Literal["received", "pending", "refunded", "failed"] = "received"
+    note: str = ""
+    payer_upi: str = ""
+
+
+@api_router.get("/payments/settings")
+async def get_payment_settings(current=Depends(get_current_user)):
+    doc = await db.payment_settings.find_one({"owner_id": current["id"]}, _proj())
+    if not doc:
+        return PaymentSettings().model_dump()
+    doc.pop("owner_id", None)
+    return doc
+
+
+@api_router.put("/payments/settings")
+async def update_payment_settings(body: PaymentSettings, current=Depends(get_current_user)):
+    data = body.model_dump()
+    # never store the full account number — always keep only last 4
+    if data.get("account_number_last4"):
+        digits = "".join(ch for ch in data["account_number_last4"] if ch.isdigit())
+        data["account_number_last4"] = digits[-4:]
+    data["owner_id"] = current["id"]
+    await db.payment_settings.update_one({"owner_id": current["id"]}, {"$set": data}, upsert=True)
+    data.pop("owner_id", None)
+    data.pop("_id", None)
+    return data
+
+
+@api_router.get("/payments")
+async def list_payments(current=Depends(get_current_user)):
+    return await _list(db.payments, current["id"], "", [], 500)
+
+
+@api_router.post("/payments")
+async def create_payment(body: PaymentCreate, current=Depends(get_current_user)):
+    reference = await _next_seq(current["id"], "payments", "PAY")
+    invoice_number = ""
+    if body.invoice_id:
+        inv = await db.invoices.find_one({"id": body.invoice_id, "owner_id": current["id"]})
+        if inv:
+            invoice_number = inv.get("invoice_number", "")
+            # auto-mark invoice paid if payment covers total
+            if body.status == "received" and body.amount >= inv.get("total", 0):
+                await db.invoices.update_one({"id": body.invoice_id}, {"$set": {"status": "paid"}})
+    p = Payment(owner_id=current["id"], reference=reference, invoice_number=invoice_number, **body.model_dump())
+    await db.payments.insert_one(p.model_dump())
+    return p.model_dump()
+
+
+@api_router.delete("/payments/{pid}")
+async def delete_payment(pid: str, current=Depends(get_current_user)):
+    r = await db.payments.delete_one({"id": pid, "owner_id": current["id"]})
+    if r.deleted_count == 0:
+        raise HTTPException(404, "Payment not found")
+    return {"ok": True}
+
+
+@api_router.get("/payments/upi-link")
+async def upi_link(amount: float = 0, note: str = "", current=Depends(get_current_user)):
+    """Build a UPI deep link + summary from the owner's saved UPI ID."""
+    from urllib.parse import quote
+    s = await db.payment_settings.find_one({"owner_id": current["id"]}, _proj())
+    if not s or not s.get("upi_id"):
+        raise HTTPException(400, "No UPI ID configured in Payment settings")
+    payee = s["upi_id"]
+    name = s.get("account_holder") or current.get("business_name") or current.get("name") or "Merchant"
+    tn = note or f"Payment to {name}"
+    link = f"upi://pay?pa={quote(payee)}&pn={quote(name)}&am={amount:.2f}&cu=INR&tn={quote(tn)}"
+    return {"upi_link": link, "payee": payee, "payee_name": name, "amount": amount, "currency": "INR"}
 
 
 # ---------------------------------------------------------------------------
@@ -833,14 +940,14 @@ async def seed_demo_data(current=Depends(get_current_user)):
         return {"ok": True, "message": "Already seeded"}
 
     products_seed = [
-        {"name": "Espresso Machine Pro", "sku": "EM-100", "category": "Equipment", "price": 899, "cost": 520, "stock": 12},
-        {"name": "Organic Coffee Beans 1kg", "sku": "CB-01", "category": "Consumables", "price": 24.5, "cost": 12, "stock": 85},
-        {"name": "Ceramic Mug Set", "sku": "MUG-04", "category": "Retail", "price": 18, "cost": 7, "stock": 6},
-        {"name": "Steel Water Bottle", "sku": "WB-22", "category": "Retail", "price": 22, "cost": 9, "stock": 40},
-        {"name": "Notebook A5", "sku": "NB-A5", "category": "Stationery", "price": 8, "cost": 2.5, "stock": 3},
-        {"name": "Wireless Earbuds", "sku": "EB-11", "category": "Electronics", "price": 79, "cost": 38, "stock": 27},
-        {"name": "Desk Lamp LED", "sku": "DL-77", "category": "Electronics", "price": 45, "cost": 20, "stock": 15},
-        {"name": "Leather Wallet", "sku": "LW-09", "category": "Retail", "price": 65, "cost": 22, "stock": 9},
+        {"name": "Masala Chai Premix 1kg", "sku": "MC-01", "category": "Consumables", "price": 450, "cost": 180, "stock": 85},
+        {"name": "Filter Coffee Powder 500g", "sku": "FC-02", "category": "Consumables", "price": 320, "cost": 140, "stock": 42},
+        {"name": "Steel Tiffin Box Set", "sku": "TB-04", "category": "Retail", "price": 899, "cost": 380, "stock": 6},
+        {"name": "Copper Water Bottle 1L", "sku": "CW-22", "category": "Retail", "price": 1299, "cost": 520, "stock": 40},
+        {"name": "Khadi Notebook A5", "sku": "NB-A5", "category": "Stationery", "price": 249, "cost": 90, "stock": 3},
+        {"name": "Wireless Earbuds Pro", "sku": "EB-11", "category": "Electronics", "price": 4999, "cost": 2100, "stock": 27},
+        {"name": "LED Study Lamp", "sku": "DL-77", "category": "Electronics", "price": 1499, "cost": 620, "stock": 15},
+        {"name": "Handloom Cotton Kurta", "sku": "KR-09", "category": "Apparel", "price": 1899, "cost": 780, "stock": 9},
     ]
     for p in products_seed:
         p.update({"id": new_id(), "owner_id": owner_id, "low_stock_threshold": 10,
@@ -848,11 +955,11 @@ async def seed_demo_data(current=Depends(get_current_user)):
     await db.products.insert_many(products_seed)
 
     customers_seed = [
-        {"name": "Acme Corp", "email": "hello@acme.co", "phone": "+1 202-555-0100", "company": "Acme Corp"},
-        {"name": "Elena Fischer", "email": "elena@example.com", "phone": "+49 30 5555-2211", "company": "Fischer GmbH"},
-        {"name": "Rahul Sharma", "email": "rahul@sharma.io", "phone": "+91 98100-11111", "company": "Sharma Retail"},
-        {"name": "Kenji Tanaka", "email": "kenji@tanaka.jp", "phone": "+81 3-5555-9020", "company": "Tanaka Foods"},
-        {"name": "Maria Silva", "email": "maria@brand.br", "phone": "+55 11 5555-3040", "company": "Brand Silva"},
+        {"name": "Rahul Sharma", "email": "rahul@sharma.co.in", "phone": "+91 98100-11223", "company": "Sharma Retail"},
+        {"name": "Priya Iyer", "email": "priya@iyerfoods.in", "phone": "+91 98450-33445", "company": "Iyer Foods"},
+        {"name": "Arjun Mehta", "email": "arjun@mehtaco.in", "phone": "+91 99870-55667", "company": "Mehta & Co."},
+        {"name": "Sneha Reddy", "email": "sneha@reddyclinic.in", "phone": "+91 90080-77889", "company": "Reddy Clinic"},
+        {"name": "Vikram Nair", "email": "vikram@nairhotels.in", "phone": "+91 97440-99001", "company": "Nair Hotels"},
     ]
     for c in customers_seed:
         c.update({"id": new_id(), "owner_id": owner_id, "address": "", "notes": "",
@@ -888,30 +995,31 @@ async def seed_demo_data(current=Depends(get_current_user)):
 
     # Employees
     employees_seed = [
-        {"name": "Sarah Chen", "email": "sarah@company.com", "role": "Store Manager", "department": "Operations", "salary": 5200},
-        {"name": "James Okafor", "email": "james@company.com", "role": "Cashier", "department": "Sales", "salary": 2800},
-        {"name": "Priya Patel", "email": "priya@company.com", "role": "Accountant", "department": "Finance", "salary": 4600},
-        {"name": "Diego Ramirez", "email": "diego@company.com", "role": "Warehouse Lead", "department": "Logistics", "salary": 3400},
+        {"name": "Sanya Kapoor", "email": "sanya@company.in", "role": "Store Manager", "department": "Operations", "salary": 52000, "phone": "+91 98111-22334"},
+        {"name": "Rohit Verma", "email": "rohit@company.in", "role": "Cashier", "department": "Sales", "salary": 28000, "phone": "+91 99887-66553"},
+        {"name": "Ananya Das", "email": "ananya@company.in", "role": "Accountant", "department": "Finance", "salary": 46000, "phone": "+91 90090-11223"},
+        {"name": "Karthik Rao", "email": "karthik@company.in", "role": "Warehouse Lead", "department": "Logistics", "salary": 34000, "phone": "+91 98220-99887"},
     ]
     for e in employees_seed:
-        e.update({"id": new_id(), "owner_id": owner_id, "phone": "", "status": "active", "joined_at": now_iso()})
+        e.update({"id": new_id(), "owner_id": owner_id, "status": "active", "joined_at": now_iso()})
     await db.employees.insert_many(employees_seed)
 
     suppliers_seed = [
-        {"name": "Global Beans Co.", "contact_person": "Luis Ortega", "email": "luis@globalbeans.co", "phone": "+34 555 010"},
-        {"name": "Alpha Electronics", "contact_person": "Wei Zhang", "email": "wei@alpha.hk", "phone": "+852 5555 8020"},
-        {"name": "Northwood Paper", "contact_person": "Emma Larsson", "email": "emma@northwood.se", "phone": "+46 8 5555 4020"},
+        {"name": "Tata Beverages Pvt Ltd", "contact_person": "Anil Bhatt", "email": "anil@tatabev.in", "phone": "+91 22 5555 0100"},
+        {"name": "Bharat Electronics Distribution", "contact_person": "Meena Rao", "email": "meena@bharatelec.in", "phone": "+91 80 5555 2020"},
+        {"name": "Northwood Paper India", "contact_person": "Ritu Malhotra", "email": "ritu@northwood.in", "phone": "+91 11 5555 4040"},
     ]
     for s in suppliers_seed:
         s.update({"id": new_id(), "owner_id": owner_id, "address": "", "products_supplied": "", "created_at": now_iso()})
     await db.suppliers.insert_many(suppliers_seed)
 
     expenses_seed = [
-        {"category": "Rent", "description": "Monthly store rent", "amount": 2200},
-        {"category": "Utilities", "description": "Electricity + Water", "amount": 340},
-        {"category": "Marketing", "description": "Instagram ads", "amount": 480},
-        {"category": "Salaries", "description": "Weekly payroll", "amount": 3600},
-        {"category": "Supplies", "description": "Cleaning supplies", "amount": 120},
+        {"category": "Rent", "description": "Monthly shop rent", "amount": 22000},
+        {"category": "Utilities", "description": "Electricity + Water", "amount": 3400},
+        {"category": "Marketing", "description": "Instagram + Meta ads", "amount": 4800},
+        {"category": "Salaries", "description": "Weekly payroll", "amount": 36000},
+        {"category": "GST", "description": "Quarterly GST filing", "amount": 8500},
+        {"category": "Supplies", "description": "Cleaning + packaging", "amount": 1200},
     ]
     for e in expenses_seed:
         e.update({"id": new_id(), "owner_id": owner_id,
