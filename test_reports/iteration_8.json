@@ -1,0 +1,19 @@
+{
+  "summary": "Iteration 8 regression smoke: AuthContext logout comment-only change has no behavioral impact. Backend auth endpoints (login/me/logout) return 200. Frontend full smoke passes: login as admin, dashboard renders in ₹, orders/products/invoices/expenses/payments/business-profile all load without errors, and sidebar Logout clears session and redirects to /login.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "POST /api/auth/login → 200 with access_token (admin@businessflow.io)",
+    "GET /api/auth/me → 200 (Bearer token)",
+    "POST /api/auth/logout → 200",
+    "UI login as admin succeeds and redirects to /app",
+    "Dashboard renders ₹ symbol; no '₹$' double-symbol occurrences",
+    "/app/orders, /app/products, /app/invoices, /app/expenses, /app/payments all load with zero '$' chars and no error elements",
+    "/app/business-profile loads (5 '$' chars observed appear to be non-currency template text — no '₹$' doubles, no error elements)",
+    "Sidebar Logout button (1 found) clicked → session cleared → redirected to /login"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "100% (3/3)", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}

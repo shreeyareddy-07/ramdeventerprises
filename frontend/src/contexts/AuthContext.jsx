@@ -43,7 +43,10 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await api.post("/auth/logout");
-    } catch {}
+    } catch (e) {
+      // Best-effort: always clear local session even if the server call fails
+      // (e.g. network down, expired token). No user-facing error needed.
+    }
     setUser(false);
   };
 
