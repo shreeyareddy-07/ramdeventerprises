@@ -20,6 +20,8 @@ export default function BusinessProfile() {
     try {
       await api.put("/business/profile", form);
       toast.success("Business profile saved");
+      const { data } = await api.get("/business/profile");
+      setForm((f) => ({ ...f, ...data }));
     } catch (e) { toast.error(formatApiError(e)); }
     finally { setBusy(false); }
   };

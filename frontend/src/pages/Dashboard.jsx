@@ -248,7 +248,7 @@ export default function Dashboard() {
                 <tr key={o.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
                   <td className="py-2.5 mono text-xs">{o.order_number}</td>
                   <td>{o.customer_name || "—"}</td>
-                  <td className="text-right mono">₹${(o.total || 0).toFixed(2)}</td>
+                  <td className="text-right mono">₹{(o.total || 0).toFixed(2)}</td>
                   <td className="text-right">
                     <span className={`text-[10px] mono uppercase tracking-wider px-2 py-0.5 border ${
                       o.status === "completed" ? "text-[#059669] border-[#059669]/30 bg-[#059669]/5" :

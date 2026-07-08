@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 4 focused smoke: verified ₹ rendering across Orders/Dashboard/Payments (no literal '$' leaks) and Business Profile persistence. Backend PUT /api/business/profile correctly persists all fields (verified via curl GET after PUT). Frontend UI: Orders list rows render ₹192.50/₹2039.04/etc cleanly, new-order dialog shows Subtotal/Tax/Total as ₹0.00, Payments page loads with ₹4,000 received & UPI method visible. Business Profile page loaded with pre-populated values, Save profile click showed toast 'Business profile saved', reload preserved all fields (business_name=BusinessFlow HQ IN, industry=Retail, phone=+919999900000, address=MG Road Bengaluru, tax_id=TAX-IN-9999, currency=INR). Topbar shows 'BUSINESSFLOW HQ' — the user.business_name from auth, NOT the updated business_profile.business_name — minor inconsistency worth noting.",
+  "tested_scope": ["frontend", "backend", "integration"],
+  "passed": [
+    "POST /api/auth/login admin@businessflow.io → 200",
+    "GET /api/business/profile → 200 returns persisted values",
+    "PUT /api/business/profile → 200 persists business_name=BusinessFlow HQ IN, currency=INR, all fields",
+    "Orders page: 0 '$' hits, 0 '₹$' hits — all totals render as ₹NNN.NN",
+    "New-order dialog: Subtotal ₹0.00 / Tax ₹0.00 / Total ₹0.00 — clean",
+    "Dashboard KPIs render ₹8,963.18 / ₹2,223.18 and chart Y-axis shows ₹0..₹6000",
+    "Business Profile Save shows 'Business profile saved' toast",
+    "Business Profile values persist across full page reload (verified via input values after reload)",
+    "Payments page loads: ₹4,000 received, 2 UPI transactions shown, no '$' leaks",
+    "Topbar workspace indicator visible (shows 'BUSINESSFLOW HQ')"
+  ],
+  "failed": [
+    {
+      "area": "Topbar workspace indicator",
+      "issue": "Topbar shows 'BUSINESSFLOW HQ' (user.business_name from auth object) instead of the updated 'BusinessFlow HQ IN' from business profile. The topbar does not reflect the newly-saved business_name from /api/business/profile.",
+      "evidence": "After saving business_name='BusinessFlow HQ IN' and reloading, topbar text still reads 'BUSINESSFLOW HQ'. Business profile page shows updated value correctly.",
+      "priority": "MEDIUM"
+    },
+    {
+      "area": "Dashboard hidden text",
+      "issue": "innerText scan returned 5 '$' hits on dashboard: ['$48,290','$18,441','$0','$0','$29']. Visible UI shows only ₹. These likely come from off-screen/hidden elements (possibly Emergent overlay/badge tooltip) — not visible to user in screenshot, but present in DOM.",
+      "evidence": "Screenshot shows only ₹ values; text scan surfaces '$' from hidden/overlay text.",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Consider updating topbar workspace indicator to read from business_profile.business_name (or refresh user.business_name after PUT) so it reflects the saved value.",
+    "Optional: audit dashboard DOM for the 5 '$'-value strings ($48,290 / $18,441 / $29) to confirm they are truly hidden marketing/badge text and not user-facing."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}

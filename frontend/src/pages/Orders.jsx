@@ -121,7 +121,7 @@ export default function Orders() {
                 <td className="px-4 py-3 mono text-xs">{o.order_number}</td>
                 <td>{o.customer_name || "—"}</td>
                 <td className="text-neutral-500 text-xs">{(o.items || []).length} item(s)</td>
-                <td className="text-right mono">₹${(o.total || 0).toFixed(2)}</td>
+                <td className="text-right mono">₹{(o.total || 0).toFixed(2)}</td>
                 <td>
                   <select value={o.status} onChange={(e) => setStatus(o.id, e.target.value)}
                           data-testid={`orders-status-${o.id}`}
@@ -224,9 +224,9 @@ export default function Orders() {
             </div>
 
             <div className="border-t border-neutral-200 pt-4 space-y-1 text-sm mono">
-              <div className="flex justify-between"><span>Subtotal</span><span>₹${subtotal.toFixed(2)}</span></div>
-              <div className="flex justify-between text-neutral-500"><span>Tax</span><span>₹${tax.toFixed(2)}</span></div>
-              <div className="flex justify-between font-display text-xl font-bold pt-2"><span>Total</span><span>₹${total.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
+              <div className="flex justify-between text-neutral-500"><span>Tax</span><span>₹{tax.toFixed(2)}</span></div>
+              <div className="flex justify-between font-display text-xl font-bold pt-2"><span>Total</span><span>₹{total.toFixed(2)}</span></div>
             </div>
 
             <DialogFooter>
