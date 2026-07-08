@@ -62,10 +62,12 @@ export default function Payments() {
   };
 
   const genUpiLink = async () => {
+    const amount = window.prompt("Amount (₹)", "500");
+    if (!amount) return;
+    const customUpi = window.prompt("UPI ID (leave blank to use your saved one)", settings.upi_id || "");
+    if (customUpi === null) return;
     try {
-      const amount = window.prompt("Amount (₹)", "500");
-      if (!amount) return;
-      const { data } = await api.get("/payments/upi-link", { params: { amount, note: "BusinessFlow payment" } });
+      const { data } = await api.get("/payments/upi-link", { params: { amount, note: "BusinessFlow payment", upi_id: customUpi } });
       setUpi(data); setUpiOpen(true);
     } catch (e) { toast.error(formatApiError(e)); }
   };

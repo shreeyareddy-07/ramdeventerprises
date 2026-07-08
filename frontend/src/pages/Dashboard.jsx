@@ -30,14 +30,16 @@ function AnimatedNumber({ value, prefix = "", decimals = 0 }) {
   return <span className="tabular">{prefix}{n.toLocaleString(undefined, { maximumFractionDigits: decimals, minimumFractionDigits: decimals })}</span>;
 }
 
-function KPI({ icon: Icon, label, value, sub, tone = "default", spark, delta, index = 0 }) {
+function KPI({ icon: Icon, label, value, sub, tone = "default", spark, delta, index = 0, to }) {
+  const Wrapper = to ? Link : "div";
+  const props = to ? { to } : {};
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.05 }}
-      className="group bg-white border border-neutral-200 hover:border-neutral-900 p-5 rounded-sm transition-colors relative overflow-hidden"
     >
+      <Wrapper {...props} className="block group bg-white border border-neutral-200 hover:border-neutral-900 p-5 rounded-sm transition-colors relative overflow-hidden cursor-pointer">
       <div className="flex items-start justify-between">
         <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 flex items-center gap-2">
           <Icon className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -68,6 +70,7 @@ function KPI({ icon: Icon, label, value, sub, tone = "default", spark, delta, in
           </ResponsiveContainer>
         </div>
       )}
+      </Wrapper>
     </motion.div>
   );
 }
@@ -76,7 +79,11 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    api.get("/dashboard/overview").then((r) => setData(r.data)).catch(() => setData({ kpis: {} }));
+    let alive = true;
+    const fetch = () => api.get("/dashboard/overview").then((r) => { if (alive) setData(r.data); }).catch(() => alive && setData({ kpis: {} }));
+    fetch();
+    const id = setInterval(fetch, 15000);  // real-time-ish refresh
+    return () => { alive = false; clearInterval(id); };
   }, []);
 
   const seedDemo = async () => {
@@ -143,15 +150,15 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        <KPI index={0} icon={DollarSign} label="Revenue" value={<AnimatedNumber value={k.revenue} prefix="₹" decimals={2} />}
+        <KPI index={0} to="/app/reports" icon={DollarSign} label="Revenue" value={<AnimatedNumber value={k.revenue} prefix="₹" decimals={2} />}
              sub="From completed orders" tone="brand" spark={spark} delta={12} />
-        <KPI index={1} icon={ShoppingCart} label="Orders" value={<AnimatedNumber value={k.orders} />}
+        <KPI index={1} to="/app/orders" icon={ShoppingCart} label="Orders" value={<AnimatedNumber value={k.orders} />}
              sub="All-time" spark={orderSpark} delta={8} />
-        <KPI index={2} icon={Users} label="Customers" value={<AnimatedNumber value={k.customers} />} sub="Active accounts" delta={4} />
-        <KPI index={3} icon={Package} label="Products" value={<AnimatedNumber value={k.products} />} sub="In inventory" />
-        <KPI index={4} icon={TrendingUp} label="Profit" value={<AnimatedNumber value={k.profit} prefix="₹" decimals={2} />}
+        <KPI index={2} to="/app/customers" icon={Users} label="Customers" value={<AnimatedNumber value={k.customers} />} sub="Active accounts" delta={4} />
+        <KPI index={3} to="/app/products" icon={Package} label="Products" value={<AnimatedNumber value={k.products} />} sub="In inventory" />
+        <KPI index={4} to="/app/reports" icon={TrendingUp} label="Profit" value={<AnimatedNumber value={k.profit} prefix="₹" decimals={2} />}
              sub={`Expenses ${money(k.expenses)}`} tone="brand" />
-        <KPI index={5} icon={Users} label="Employees" value={<AnimatedNumber value={k.employees} />} sub="On payroll" />
+        <KPI index={5} to="/app/employees" icon={Users} label="Employees" value={<AnimatedNumber value={k.employees} />} sub="On payroll" />
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="col-span-2 bg-neutral-900 text-white p-5 rounded-sm relative overflow-hidden group"

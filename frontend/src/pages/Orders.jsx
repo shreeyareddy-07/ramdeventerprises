@@ -26,7 +26,7 @@ export default function Orders() {
       setRows(o.data); setProducts(p.data); setCustomers(c.data);
     } catch (e) { toast.error(formatApiError(e)); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); const id = setInterval(load, 15000); return () => clearInterval(id); }, []);
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [q]);
 
   const addItem = () => setForm((f) => ({ ...f, items: [...f.items, { product_id: "", name: "", quantity: 1, price: 0 }] }));

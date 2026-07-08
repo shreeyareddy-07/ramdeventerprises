@@ -530,32 +530,44 @@ async def list_orders(search: str = "", current=Depends(get_current_user)):
 
 @api_router.post("/orders")
 async def create_order(body: OrderCreate, current=Depends(get_current_user)):
+    if not body.items:
+        raise HTTPException(400, "Order must contain at least one item")
+    owner_id = current["id"]
+
+    # Atomic conditional stock decrement per item. Rolls back on any failure.
+    decremented = []  # [(product_id, qty), ...]
+    for item in body.items:
+        if item.quantity <= 0:
+            raise HTTPException(400, f"Invalid quantity for {item.name}")
+        r = await db.products.update_one(
+            {"id": item.product_id, "owner_id": owner_id, "stock": {"$gte": item.quantity}},
+            {"$inc": {"stock": -item.quantity}},
+        )
+        if r.modified_count == 0:
+            # roll back previous decrements
+            for pid, qty in decremented:
+                await db.products.update_one({"id": pid, "owner_id": owner_id}, {"$inc": {"stock": qty}})
+            prod = await db.products.find_one({"id": item.product_id, "owner_id": owner_id}, _proj())
+            avail = prod.get("stock", 0) if prod else 0
+            raise HTTPException(409, f"Insufficient stock for '{item.name}'. Available: {avail}, requested: {item.quantity}")
+        decremented.append((item.product_id, item.quantity))
+
     subtotal = sum(i.price * i.quantity for i in body.items)
     tax = subtotal * (body.tax_rate or 0) / 100
     total = subtotal + tax
-    order_number = await _next_seq(current["id"], "orders", "ORD")
+    order_number = await _next_seq(owner_id, "orders", "ORD")
     order = Order(
-        owner_id=current["id"],
-        order_number=order_number,
-        customer_id=body.customer_id,
-        customer_name=body.customer_name,
-        items=body.items,
-        subtotal=subtotal,
-        tax=tax,
-        total=total,
-        status=body.status,
-        payment_status=body.payment_status,
+        owner_id=owner_id, order_number=order_number,
+        customer_id=body.customer_id, customer_name=body.customer_name,
+        items=body.items, subtotal=subtotal, tax=tax, total=total,
+        status=body.status, payment_status=body.payment_status,
     )
     doc = order.model_dump()
     await db.orders.insert_one(doc)
     doc.pop("_id", None)
-    # decrement stock
-    for item in body.items:
-        await db.products.update_one({"id": item.product_id, "owner_id": current["id"]},
-                                     {"$inc": {"stock": -item.quantity}})
-    # update customer aggregates
+
     if body.customer_id:
-        await db.customers.update_one({"id": body.customer_id, "owner_id": current["id"]},
+        await db.customers.update_one({"id": body.customer_id, "owner_id": owner_id},
                                       {"$inc": {"total_orders": 1, "total_spent": total}})
     return doc
 
@@ -564,17 +576,49 @@ async def create_order(body: OrderCreate, current=Depends(get_current_user)):
 async def update_order_status(oid: str, status: str = Query(...), current=Depends(get_current_user)):
     if status not in {"pending", "processing", "completed", "cancelled"}:
         raise HTTPException(400, "Invalid status")
-    r = await db.orders.update_one({"id": oid, "owner_id": current["id"]}, {"$set": {"status": status}})
-    if r.matched_count == 0:
+    order = await db.orders.find_one({"id": oid, "owner_id": current["id"]}, _proj())
+    if not order:
         raise HTTPException(404, "Order not found")
+    prev = order.get("status")
+
+    updates = {"status": status}
+    # Auto-mark payment paid when completed
+    if status == "completed" and order.get("payment_status") != "paid":
+        updates["payment_status"] = "paid"
+    # Restore stock on cancellation (only if not already cancelled)
+    if status == "cancelled" and prev != "cancelled":
+        for item in order.get("items", []):
+            await db.products.update_one(
+                {"id": item["product_id"], "owner_id": current["id"]},
+                {"$inc": {"stock": item["quantity"]}},
+            )
+    # If moving out of cancelled back to active — re-decrement (protect stock)
+    if prev == "cancelled" and status != "cancelled":
+        for item in order.get("items", []):
+            r = await db.products.update_one(
+                {"id": item["product_id"], "owner_id": current["id"], "stock": {"$gte": item["quantity"]}},
+                {"$inc": {"stock": -item["quantity"]}},
+            )
+            if r.modified_count == 0:
+                raise HTTPException(409, f"Cannot reactivate: insufficient stock for '{item.get('name','item')}'")
+
+    await db.orders.update_one({"id": oid, "owner_id": current["id"]}, {"$set": updates})
     return await db.orders.find_one({"id": oid}, _proj())
 
 
 @api_router.delete("/orders/{oid}")
 async def delete_order(oid: str, current=Depends(get_current_user)):
-    r = await db.orders.delete_one({"id": oid, "owner_id": current["id"]})
-    if r.deleted_count == 0:
+    order = await db.orders.find_one({"id": oid, "owner_id": current["id"]}, _proj())
+    if not order:
         raise HTTPException(404, "Order not found")
+    # Restore stock unless it was already cancelled
+    if order.get("status") != "cancelled":
+        for item in order.get("items", []):
+            await db.products.update_one(
+                {"id": item["product_id"], "owner_id": current["id"]},
+                {"$inc": {"stock": item["quantity"]}},
+            )
+    await db.orders.delete_one({"id": oid, "owner_id": current["id"]})
     return {"ok": True}
 
 
@@ -821,13 +865,16 @@ async def delete_payment(pid: str, current=Depends(get_current_user)):
 
 
 @api_router.get("/payments/upi-link")
-async def upi_link(amount: float = 0, note: str = "", current=Depends(get_current_user)):
-    """Build a UPI deep link + summary from the owner's saved UPI ID."""
+async def upi_link(amount: float = 0, note: str = "", upi_id: str = "", current=Depends(get_current_user)):
+    """Build a UPI deep link. If upi_id query param provided, use it; else use owner's saved UPI."""
     from urllib.parse import quote
-    s = await db.payment_settings.find_one({"owner_id": current["id"]}, _proj())
-    if not s or not s.get("upi_id"):
-        raise HTTPException(400, "No UPI ID configured in Payment settings")
-    payee = s["upi_id"]
+    payee = upi_id.strip()
+    if not payee:
+        s = await db.payment_settings.find_one({"owner_id": current["id"]}, _proj())
+        payee = (s or {}).get("upi_id", "")
+    if not payee:
+        raise HTTPException(400, "No UPI ID provided or configured in Payment settings")
+    s = await db.payment_settings.find_one({"owner_id": current["id"]}, _proj()) or {}
     name = s.get("account_holder") or current.get("business_name") or current.get("name") or "Merchant"
     tn = note or f"Payment to {name}"
     link = f"upi://pay?pa={quote(payee)}&pn={quote(name)}&am={amount:.2f}&cu=INR&tn={quote(tn)}"

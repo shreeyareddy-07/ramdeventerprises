@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 6 first-finish testing. 8/8 backend flows PASS (payment auto-paid on completion, atomic stock rejection with 409, multi-item rollback, concurrent 5x create with stock=2 → exactly 2 succeed/3 rejected/final=0, restore on cancel + no double-restore, restore on delete, re-decrement on reactivation from cancel, UPI custom upi_id override). Frontend KPI clickable navigation all 5 targets PASS. CRITICAL BUG: /app/invoices and /app/expenses render both '₹' AND '$' side-by-side (e.g. '₹$6740.00') — 27 dollar signs on invoices, 6 on expenses — because JSX uses '₹${expr}' without backticks so '$' is literal text.",
+  "tested_scope": ["backend", "frontend", "integration"],
+  "passed": [
+    "Login admin@businessflow.io",
+    "T1 PAYMENT AUTO-PAID: completing an unpaid order sets payment_status=paid; reverting to pending keeps payment_status=paid (no auto-reset)",
+    "T2 INSUFFICIENT STOCK: qty=stock+1 returns 409 'Insufficient stock for X. Available: N, requested: N+1', stock unchanged",
+    "T3 MULTI-ITEM ROLLBACK: mixed order (A qty=1 ok, B qty=999999 over) returns 409 and A stock rolled back to original (27→27)",
+    "T4 CONCURRENCY: 5 parallel POST /api/orders with stock=2 → 2 x 200 + 3 x 409, final stock=0, never negative",
+    "T5 RESTORE ON CANCEL: qty=2 order cancelled restores stock; second cancel is idempotent (no double restore)",
+    "T6 RESTORE ON DELETE: DELETE /api/orders/{id} restores stock",
+    "T7 REACTIVATE: cancel then set back to pending re-decrements stock by 1",
+    "T8 UPI CUSTOM: GET /api/payments/upi-link?amount=100&upi_id=custom@paytm returns upi_link with pa=custom%40paytm (overrides saved settings)",
+    "KPI CLICKS: Revenue→/app/reports, Orders→/app/orders, Customers→/app/customers, Products→/app/products, Employees→/app/employees all navigate correctly"
+  ],
+  "failed": [
+    {
+      "area": "frontend/currency",
+      "issue": "Amount cells on Invoices and Expenses render literal '₹$' prefix (e.g. 'Total tracked: ₹$6740.00', row amounts '₹$120.00'). Root cause: JSX children use '₹${expr}' — this is NOT a template literal (no backticks around JSX child text), so '$' is rendered as literal character.",
+      "evidence": "Screenshot of /app/expenses shows '₹$6740.00', '₹$120.00', etc. grep on /app/frontend/src/pages/Invoices.jsx lines 87-89 and /app/frontend/src/pages/Expenses.jsx lines 58,79 confirm '₹${...}' pattern. Frontend '$' count: invoices=27, expenses=6 (matches ₹ count exactly — both symbols present on every amount).",
+      "priority": "HIGH"
+    }
+  ],
+  "action_items": [
+    "Fix /app/frontend/src/pages/Invoices.jsx lines 87-89 and /app/frontend/src/pages/Expenses.jsx lines 58, 79: replace '₹${(x).toFixed(2)}' with '₹{(x).toFixed(2)}' (remove the '$' character; JSX child expressions use plain curly braces, not template literals). After fix, dollar-count on both pages should be 0.",
+    "Optionally verify 15s live-refresh in Orders/Dashboard was not deep-tested here — inspect setInterval in Dashboard.jsx and Orders.jsx (main-agent claim, code-level check only)."
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "80% (KPI clicks pass; currency bug on 2 pages)"},
+  "retest_needed": true,
+  "full_testing_deferred": true
+}
