@@ -1,0 +1,16 @@
+{
+  "summary": "Iteration 7 regression: ₹$ double-symbol bug is FIXED across Dashboard, Invoices, Expenses, and Reports. Logged in as admin, navigated to all four pages, and scanned full visible body text. Every monetary value renders as ₹NNN.NN with zero '$' characters and zero '₹$' occurrences on all pages.",
+  "tested_scope": ["frontend"],
+  "passed": [
+    "Login as admin@businessflow.io succeeds and lands on /app dashboard",
+    "/app dashboard: 0 '$' chars, 0 '₹$' doubles; KPIs & recent orders render as ₹11,432.78 / ₹4,692.78 / ₹6,740 etc.",
+    "/app/invoices: 0 '$' chars, 0 '₹$' doubles; subtotal/tax/total cells render as ₹1000.00 / ₹173.00 / ₹1173.00 etc.",
+    "/app/expenses: 0 '$' chars, 0 '₹$' doubles; amount cells render as ₹6740.00 / ₹120.00 / ₹3600.00 etc.",
+    "/app/reports: 0 '$' chars, 0 '₹$' doubles; KPIs render as ₹11432.78 / ₹4692.78 / ₹6740.00"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "not tested", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}
