@@ -59,6 +59,7 @@ export default function GlobalSearch({ open, onOpenChange }) {
               {items.map((r) => (
                 <CommandItem
                   key={r.kind + r.id}
+                  value={`${r.kind} ${r.label} ${r.sub}`}
                   onSelect={() => { onOpenChange(false); nav(KIND_ROUTE[r.kind]); }}
                   data-testid={`search-result-${r.kind}-${r.id}`}
                 >
