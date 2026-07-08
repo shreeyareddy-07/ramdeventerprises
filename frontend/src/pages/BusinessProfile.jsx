@@ -10,8 +10,9 @@ export default function BusinessProfile() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.get("/business/profile").then((r) => setForm({ ...form, ...r.data })).catch(() => {});
-    // eslint-disable-next-line
+    api.get("/business/profile")
+      .then((r) => setForm((prev) => ({ ...prev, ...r.data })))
+      .catch(() => {});
   }, []);
 
   const submit = async (e) => {

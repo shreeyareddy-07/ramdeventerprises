@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 5 focused smoke on the 3 targeted fixes. FIX 1 (BusinessProfile stale-closure) VERIFIED end-to-end: set business_name='Fixed Store IN', industry='Retail', phone='+91 98765-43210' -> saved -> reload persists all 3 values. Then changed only industry to 'Cafe' -> saved -> reload shows industry='Cafe' while business_name, phone, email, address, tax_id, currency are all preserved (no wipe/revert). FIX 2 (Dashboard seedDemo console.error on failure): code inspected in Dashboard.jsx L82-90 - try/catch now console.error's on failure (fresh admin workspace already seeded, throttle path not organically triggered but logic verified). FIX 3 (GlobalSearch console.error on failure): code inspected in GlobalSearch.jsx L30-42 - try/catch now console.error's. Backend GET /api/search returned 200 for q=desk and q=a (no errors, so console.error path not exercised - expected). Backend endpoints healthy: auth/login, auth/me, dashboard/overview (revenue \u20b911,002.22, 22 orders), business/profile GET/PUT, search all 200. Dashboard KPIs render in \u20b9 correctly. NOTE: cmdk CommandDialog shows 'No results' even though backend returns valid results - this is a pre-existing client-side cmdk filter issue (CommandItem has no explicit `value` prop for cmdk's auto-filter), unrelated to iteration 5 fixes but worth flagging.",
+  "tested_scope": ["frontend", "backend", "integration"],
+  "passed": [
+    "POST /api/auth/login admin@businessflow.io -> 200 with access_token",
+    "GET /api/auth/me -> 200",
+    "GET /api/dashboard/overview -> 200 (revenue \u20b911,002.22, 22 orders, 6 products)",
+    "GET /api/business/profile -> 200 returns persisted values",
+    "GET /api/search?q=desk -> 200 returns product results",
+    "FIX 1: BusinessProfile save persists business_name/industry/phone across reload",
+    "FIX 1: Stale-closure fix confirmed - editing only 'industry' does not wipe/revert other 6 fields after reload",
+    "FIX 2: Dashboard.jsx seedDemo has console.error in catch block (verified in code)",
+    "FIX 3: GlobalSearch.jsx search fetch has console.error in catch block (verified in code)",
+    "Dashboard KPIs render in \u20b9 (\u20b911,002.22 revenue, \u20b94,262.22 profit)",
+    "Login flow works, redirects to /app",
+    "No console.error fired for search on 200 responses (expected - fix only logs on failure)"
+  ],
+  "failed": [
+    {
+      "area": "GlobalSearch UI rendering (pre-existing, NOT iteration 5 regression)",
+      "issue": "CommandDialog shows 'No results' even though /api/search returns valid results (200, non-empty results array). Likely cmdk internal filter mismatch - CommandItem does not set explicit `value` prop matching the query. Not caused by the console.error fix.",
+      "evidence": "Network: GET /api/search?q=desk -> 200 with 'Desk Lamp LED' in response. UI dialog text: 'No results.' Same for q=a. Screenshot captured.",
+      "priority": "MEDIUM"
+    }
+  ],
+  "action_items": [
+    "OPTIONAL (not part of iteration 5 fixes): In GlobalSearch.jsx, either add `value={r.kind + ' ' + r.label + ' ' + (r.sub||'')}` to <CommandItem> or set `shouldFilter={false}` on <CommandDialog>/<Command> so the server-side results are shown as-is."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}

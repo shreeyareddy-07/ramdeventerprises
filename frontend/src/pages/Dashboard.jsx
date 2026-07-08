@@ -83,7 +83,10 @@ export default function Dashboard() {
     try {
       await api.post("/dev/seed");
       window.location.reload();
-    } catch {}
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("seed failed", e);
+    }
   };
 
   if (!data) {

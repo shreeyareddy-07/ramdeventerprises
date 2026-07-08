@@ -33,7 +33,10 @@ export default function GlobalSearch({ open, onOpenChange }) {
       try {
         const { data } = await api.get("/search", { params: { q } });
         setResults(data.results || []);
-      } catch {}
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("search failed", e);
+      }
     }, 200);
     return () => clearTimeout(id);
   }, [q]);
