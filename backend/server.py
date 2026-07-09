@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal
 import uuid
 
+import re
 import bcrypt
 import jwt
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query
@@ -438,7 +439,7 @@ def _proj():
 async def _list(coll, owner_id: str, search: str = "", fields: List[str] = None, limit: int = 500):
     q = {"owner_id": owner_id}
     if search and fields:
-        q["$or"] = [{f: {"$regex": search, "$options": "i"}} for f in fields]
+        q["$or"] = [{f: {"$regex": re.escape(search), "$options": "i"}} for f in fields]
     items = await coll.find(q, _proj()).sort("created_at", -1).to_list(limit)
     return items
 
@@ -962,7 +963,7 @@ async def global_search(q: str = "", current=Depends(get_current_user)):
     owner_id = current["id"]
     results = []
     async def _find(coll, fields, kind, label_field):
-        query = {"owner_id": owner_id, "$or": [{f: {"$regex": q, "$options": "i"}} for f in fields]}
+        query = {"owner_id": owner_id, "$or": [{f: {"$regex": re.escape(q), "$options": "i"}} for f in fields]}
         docs = await coll.find(query, _proj()).limit(5).to_list(5)
         for d in docs:
             results.append({"kind": kind, "id": d.get("id"), "label": d.get(label_field, ""), "sub": d.get(fields[1], "") if len(fields) > 1 else ""})

@@ -26,8 +26,8 @@ const features = [
 ];
 
 const plans = [
-  { name: "Starter", price: "$0", cta: "Start free", features: ["Up to 2 users", "500 products", "Core modules", "Email support"] },
-  { name: "Growth", price: "$29", period: "/mo", featured: true, cta: "Start 14-day trial",
+  { name: "Starter", price: "₹0", cta: "Start free", features: ["Up to 2 users", "500 products", "Core modules", "Email support"] },
+  { name: "Growth", price: "₹2,400", period: "/mo", featured: true, cta: "Start 14-day trial",
     features: ["Up to 10 users", "Unlimited products", "Reports + exports", "Priority support"] },
   { name: "Scale", price: "Custom", cta: "Talk to sales",
     features: ["Unlimited users", "Multi-branch", "API access", "Dedicated CSM"] },
@@ -97,10 +97,10 @@ function DashboardPreview() {
             <div className="font-display text-2xl font-bold mb-4">Command center</div>
             <div className="grid grid-cols-4 gap-3 mb-4">
               {[
-                { l: "Revenue", v: "$48,290", c: "text-[#002FA7]" },
+                { l: "Revenue", v: "₹48,290", c: "text-[#002FA7]" },
                 { l: "Orders", v: "312", c: "" },
                 { l: "Customers", v: "1,204", c: "" },
-                { l: "Profit", v: "$18,441", c: "text-[#002FA7]" },
+                { l: "Profit", v: "₹18,441", c: "text-[#002FA7]" },
               ].map((k) => (
                 <div key={k.l} className="bg-white border border-neutral-200 p-3">
                   <div className="text-[9px] uppercase tracking-widest text-neutral-500">{k.l}</div>
