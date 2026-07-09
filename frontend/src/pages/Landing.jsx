@@ -229,7 +229,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 divide-x divide-neutral-800">
           {[
             { v: 12400, l: "Businesses", suffix: "+" },
-            { v: 3200000, l: "Orders processed", prefix: "$" },
+            { v: 3200000, l: "Orders processed", prefix: "₹" },
             { v: 99, l: "Uptime", suffix: ".98%" },
             { v: 120, l: "API latency", suffix: "ms" },
           ].map((c) => (
