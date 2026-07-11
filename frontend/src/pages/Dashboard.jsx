@@ -122,7 +122,7 @@ export default function Dashboard() {
             <Activity className="w-3 h-3" /> Overview
           </div>
           <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mt-1">Command center</h1>
-        </div>
+        </div> 
         <div className="text-[10px] mono uppercase tracking-widest text-neutral-500 flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-[#059669] rounded-full animate-pulse" />
           LIVE · {new Date().toLocaleTimeString()}
