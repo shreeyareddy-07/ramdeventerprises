@@ -1097,7 +1097,10 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ramdeventerprises-1qr4.vercel.app"],
+    allow_origins=[
+            "https://ramdeventerprises-1qr4.vercel.app",
+            "https://ramdeventerprises-1qr4-73pd7mxys-ramdeventerprise.vercel.app"
+        ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
