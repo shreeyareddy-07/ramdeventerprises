@@ -110,8 +110,8 @@ export default function Dashboard() {
   const fmt = (n) => (n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
   const money = (n) => "₹" + (n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
-  const spark = (data.sales_series || []).map((s) => ({ v: s.revenue }));
-  const orderSpark = (data.sales_series || []).map((s) => ({ v: s.orders }));
+  const spark = (data?.sales_series || []).map((s) => ({ v: s.revenue }));
+  const orderSpark = (data?.sales_series || []).map((s) => ({ v: s.orders }));
   const isEmpty = (k.orders || 0) === 0 && (k.products || 0) === 0;
 
   return (
