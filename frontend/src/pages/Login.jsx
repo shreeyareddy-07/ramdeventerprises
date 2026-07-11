@@ -25,9 +25,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid md:grid-cols-2 bg-white">
+    
+    <main className="min-h-screen grid md:grid-cols-2 bg-white">
       <div className="hidden md:flex flex-col justify-between bg-neutral-900 text-white p-12 relative overflow-hidden">
-        <Link to="/" className="flex items-center gap-2 z-10">
+        <Link to="/" className="flex underline items-center gap-2 z-10">
           <div className="w-8 h-8 bg-[#FFD700] flex items-center justify-center text-neutral-900 font-black">B</div>
           <span className="font-display text-xl font-bold">BusinessFlow</span>
         </Link>
@@ -77,6 +78,6 @@ export default function Login() {
           </div>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
