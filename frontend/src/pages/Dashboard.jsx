@@ -112,7 +112,7 @@ export default function Dashboard() {
 
   const spark = (data?.sales_series || []).map((s) => ({ v: s.revenue }));
   const orderSpark = (data?.sales_series || []).map((s) => ({ v: s.orders }));
-  const isEmpty = (k.orders || 0) === 0 && (k.products || 0) === 0;
+  const isEmpty = (k.orders || 0) === 0 && (k.products || 0) === 0; 
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6" data-testid="dashboard-page">
